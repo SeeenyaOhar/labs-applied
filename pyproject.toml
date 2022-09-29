@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "labs-applied"
+version = "0.1.0"
+description = ""
+authors = ["Arsenii Ohar <arsen.ogar@gmail.com>"]
+readme = "README.md"
+packages = [{include = "labs_applied"}]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+Flask = "^2.2.2"
+waitress = "^2.1.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
