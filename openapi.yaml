@@ -1,0 +1,564 @@
+openapi: 3.0.3
+info:
+  title: Online Classes Service
+  version: 1.0.0
+tags:
+  - name: class
+    description: Everything about classes.
+  - name: user
+    description: Operations about user.
+  - name: student
+    description: Operations that involve a student.
+  - name: requests
+    description: Operations of student invitation requests.
+paths:
+  /class/{class_id}:
+    get:
+      tags:
+        - class
+      summary: Get a class by id.
+      description: Retrieves a class by id
+      operationId: getClass
+      parameters:
+        - name: class_id
+          required: true
+          in: path
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful operation!
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Class'
+        '400':
+          description: Invalid request
+        '403':
+          description: Insufficient rights, you can't get the information about the course 
+        '404':
+          description: No classes have been found.
+      security:
+        - online_classes_auth: [teacher]
+    delete:
+      tags:
+        - class
+      summary: Removes a class by id.
+      description: Removes a class by its id from Class table.
+      operationId: deleteClass
+      parameters:
+        - name: class_id
+          required: true
+          in: path
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful operation!
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Class'
+        '400': 
+          description: Bad request.
+        '403': 
+          description: Insufficient rights to retrieve the classes
+        '404':
+          description: No classes have been found.
+      security:
+        - online_classes_auth: [teacher]
+  /class:
+    get:
+      tags:
+        - class
+      summary: Get all classes.
+      description: Retrieves every class from Class table(if it's a student, just lists the classes' titles, else returns the full information)
+      operationId: getClasses
+      responses:
+        '200':
+          description: Successful operation!
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Class'
+        '400':
+          description: Bad request.
+        '404':
+          description: No classes have been found.
+    put:
+      tags:
+        - class
+      summary: Update an existing class
+      description: Update an existing class by id
+      operationId: updateClass
+      requestBody:
+        description: Update an existent class
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Class'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Class'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Class'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Class'          
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Class'
+        '400':
+          description: Invalid ID supplied
+        '403':
+          description: Insufficient rights
+        '404':
+          description: Class not found
+        '405':
+          description: Validation exception
+      security:
+        - online_classes_auth: [teacher]
+    post:
+      tags:
+        - class
+      summary: Add a new class to the platform
+      description: Add a new class
+      operationId: addClass
+      requestBody:
+        description: Create a new class
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Class'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Class'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Class'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Class'          
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Class'
+        '400':
+          description: Bad request
+        '403':
+          description: You have to be a teacher to do this
+        '405':
+          description: Invalid input
+      security:
+        - online_classes_auth: [teacher]
+  /class/student:
+    post:
+      tags: 
+        - class
+        - student
+      summary: Add a student by Request entity.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Request' 
+      responses:
+        '200':
+          description: Successful operation!
+        '400':
+          description: Bad request!
+        '403':
+          description: Insufficient rights
+        '404':
+          description: Request to add a student to a class is not valid!
+      security:
+        - online_classes_auth: [teacher]
+  /class/{student_id}/{class_id}:
+    delete:
+      tags:
+        - class
+        - student
+      summary: Deletes a student from the class specified in the parameters.
+      parameters:
+         - name: student_id
+           required: true
+           in: path
+           description: Id of a student to be removed from the class
+           schema:
+             type: integer
+         - name: class_id
+           required: true
+           in: path
+           description: Id of a class, the student has to be deleted from
+           schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful operation!
+        '400':
+          description: Bad request!
+        '404':
+          description: Request to remove a student from a class is not valid!
+      security:
+        - online_classes_auth: [teacher]
+  /class/requests/{class_id}:
+    get:
+      tags:
+        - class
+        - requests
+      summary: Get all requests to join to this class.
+      parameters:
+        - name: class_id
+          required: true
+          in: path
+          description: Id of a class
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful operation!
+          content:
+            application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Request'
+        '400':
+          description: Bad request!
+        '403': 
+          description: Insufficient rights to retrieve the classes
+        '404': 
+          description: Requests have not been found!
+      security:
+        - online_classes_auth: [teacher]
+        
+    
+  /user:
+    post:
+      tags:
+        - user
+      summary: Create user
+      description: This can only be done by the logged in user.
+      operationId: createUser
+      requestBody:
+        description: Created user object
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        default:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/User'
+  /user/createWithList:
+    post:
+      tags:
+        - user
+      summary: Creates list of users with given input array
+      description: Creates list of users with given input array
+      operationId: createUsersWithListInput
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'          
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/User'
+        default:
+          description: successful operation
+      
+  /user/login:
+    get:
+      tags:
+        - user
+      summary: Logs user into the system
+      description: ''
+      operationId: loginUser
+      parameters:
+        - name: username
+          in: query
+          description: The user name for login
+          required: false
+          schema:
+            type: string
+        - name: password
+          in: query
+          description: The password for login in clear text
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          headers:
+            X-Rate-Limit:
+              description: calls per hour allowed by the user
+              schema:
+                type: integer
+                format: int32
+            X-Expires-After:
+              description: date in UTC when token expires
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/xml:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: Invalid username/password supplied
+      
+  /user/logout:
+    get:
+      tags:
+        - user
+      summary: Logs out current logged in user session
+      description: ''
+      operationId: logoutUser
+      parameters: []
+      responses:
+        default:
+          description: successful operation
+  /user/{username}:
+    get:
+      tags:
+        - user
+      summary: Get user by user name
+      description: ''
+      operationId: getUserByName
+      parameters:
+        - name: username
+          in: path
+          description: 'The name that needs to be fetched. Use user1 for testing. '
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'          
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid username supplied
+        '404':
+          description: User not found
+    put:
+      tags:
+        - user
+      summary: Update user
+      description: This can only be done by the logged in user.
+      operationId: updateUser
+      parameters:
+        - name: username
+          in: path
+          description: name that need to be deleted
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Update an existent user in the store
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        default:
+          description: successful operation
+    delete:
+      tags:
+        - user
+      summary: Delete user
+      description: This can only be done by the logged in user.
+      operationId: deleteUser
+      parameters:
+        - name: username
+          in: path
+          description: The name that needs to be deleted
+          required: true
+          schema:
+            type: string
+      responses:
+        '400':
+          description: Invalid username supplied
+        '404':
+          description: User not found
+      security:
+        - online_classes_auth: []
+  /student/request/{class_id}:
+    post:
+      tags: 
+        - class
+        - student
+        - requests
+      summary: Add a student request to be added to the class.
+      parameters:
+         - name: class_id
+           required: true
+           in: path
+           description: Id of a class, the student has to be deleted from
+           schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful operation!
+        '400':
+          description: Bad request!
+        '404':
+          description: Request to add a student to a class is not valid!
+      security:
+        - online_classes_auth: []
+  /student/classes:
+    get:
+      tags:
+        - class
+        - student
+      summary: Get all assigned classes by a student.
+      description: Retrieves every class from Class table that the student is assigned to(if it's a teacher, returns an array with all classes, where he/she is a teacher)
+      operationId: getStudentClasses
+      responses:
+        '200':
+          description: Successful operation!
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Class'
+        '400':
+          description: Bad request.
+        '404':
+          description: No classes have been found.
+      security:
+        - online_classes_auth: []
+components:
+  schemas:
+    Class:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        description:
+          type: string
+        teacher:
+          type: integer
+      xml:
+        name: class
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 10
+        username:
+          type: string
+          example: theUser
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: James
+        email:
+          type: string
+          example: john@email.com
+        password:
+          type: string
+          example: '12345'
+        phone:
+          type: string
+          example: '12345'
+        userStatus:
+          type: integer
+          description: User Status
+          format: int32
+          example: 1
+        role:
+          type: string
+          enum:
+            - teacher
+            - student
+      xml:
+        name: user
+    Teacher:
+      properties:
+        user_id:
+          type: integer
+        diplomas:
+          type: array
+          items: 
+            type: string
+        employment:
+          type: string
+    ClassUser:
+      properties:
+        class:
+          type: integer
+        user:
+          type: integer
+    Request:
+       properties:
+        class:
+          type: integer
+        user:
+          type: integer
+  securitySchemes:
+    online_classes_auth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
