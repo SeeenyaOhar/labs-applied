@@ -2,7 +2,7 @@ from flask import make_response, Response, abort, request, Blueprint
 
 from Encoder import AlchemyEncoder
 import json
-from models.models import Class, Teacher, ClassUser, Request,User
+from models.models import Class, Teacher, ClassUser, Request, User
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
@@ -43,8 +43,8 @@ def create_student():
         session.delete(requests)
         session.commit()
     except IntegrityError:
-        return Response(status=402)
-    return Response(status=200)
+        return Response("Create failed", status=402)
+    return Response("student added", status=200)
 
 
 @class_api.route("/api/v1/class/<class_id>", methods=['GET'])
@@ -130,7 +130,6 @@ def get_request(class_id):
 
 @class_api.route("/api/v1/<class_id>/student", methods=['GET'])
 def get_student(class_id):
-
     current_student = session.query(ClassUser).filter(ClassUser.class_id == class_id).all()
     dictclass = [elem.to_dict() for elem in current_student]
 

@@ -20,15 +20,15 @@ def create_user():
     user_data = request.get_json()
 
     if user_data is None:
-        return Response(status=400)
+        return Response("Bad request", status=400)
 
     new_user = User(**user_data)
     session.add(new_user)
     try:
         session.commit()
     except IntegrityError:
-        return Response(status=402)
-    return Response("user was created",status=200)
+        return Response("Create failed", status=402)
+    return Response("user was created", status=200)
 
 
 @user_api.route("/api/v1/user/<userId>", methods=['GET'])
@@ -82,8 +82,8 @@ def login_user():
 def update_user():
     user_data = request.get_json()
     if user_data is None:
-        return Response(status=400)
-    if ('id' in user_data ):
+        return Response("Bad request", status=400)
+    if ('id' in user_data):
         try:
             user = User(**user_data)
             session.query(User).filter(User.id == user.id).update(user_data, synchronize_session="fetch")
@@ -91,4 +91,4 @@ def update_user():
         except IntegrityError:
             return Response("Update failed", status=402)
         return Response("User was updated", status=200)
-    return Response("Bad request",status=400)
+    return Response("Bad request", status=400)
