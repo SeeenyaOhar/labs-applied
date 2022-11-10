@@ -35,7 +35,7 @@ def get_classes(user_id):
     current_Class = [session.query(Class).filter_by(id=i['class_id']).first().to_dict() for i in dictclass]
 
     if current_Class is None:
-        return Response("User doesn't exist", status=404)
+        return Response("class doesn't exist", status=404)
     return Response(
         response=json.dumps(current_Class, cls=AlchemyEncoder),
         status=200,

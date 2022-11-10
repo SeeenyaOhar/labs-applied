@@ -18,7 +18,7 @@ class_api = Blueprint('class_api', __name__)
 def create():
     Class_data = request.get_json()
     if Class_data is None:
-        return Response(status=402)
+        return Response(status=400)
 
     try:
         classes = Class(**Class_data)
