@@ -83,10 +83,10 @@ def update_user():
     user_data = request.get_json()
     if user_data is None:
         return Response("Bad request", status=400)
+    user = User(**user_data)
     if ('id' in user_data):
         try:
-            user = User(**user_data)
-            session.query(User).filter(User.id == user.id).update(user_data, synchronize_session="fetch")
+            session.query(User).filter(User.id == user.id).update(user.to_dict(), synchronize_session="fetch")
             session.commit()
         except IntegrityError:
             return Response("Update failed", status=402)
