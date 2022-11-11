@@ -18,7 +18,8 @@ class Class(Base):
     description = Column(String)
     teacher_id = Column(Integer, ForeignKey("teacher.user_id"))
 
-    teacher = relationship("Teacher")
+    teacher = relationship("Teacher", cascade="all, delete")
+    request = relationship("Request", cascade="all, delete")
     def to_dict(self) -> dict:
         return {
             'title': self.title,
@@ -44,6 +45,9 @@ class User(Base):
     phone = Column(String,unique=True)
     role = Column(Enum(Role))
 
+    teacher =relationship("Teacher", cascade="all, delete")
+    request = relationship("Request",cascade="all, delete")
+    class_user = relationship("ClassUser",cascade="all, delete")
     def to_dict(self) -> dict:
         return {
             'firstName': self.firstName,
@@ -102,6 +106,8 @@ class Teacher(Base):
     diplomas = Column(ARRAY(String))
     employment = Column(ARRAY(String))
 
+    classes=relationship("Class",cascade="all, delete")
+
     def to_dict(self) -> dict:
         return {
             'diplomas': self.diplomas,
@@ -115,8 +121,8 @@ class ClassUser(Base):
     class_id = Column('class', Integer, ForeignKey("class.id"), primary_key=True)
     user_id = Column('user', Integer, ForeignKey("user.id"), primary_key=True)
 
-    class_obj = relationship("Class")
-    user_obj = relationship("User")
+    class_obj = relationship("Class" ,cascade="all, delete")
+    user_obj = relationship("User",cascade="all, delete")
     def to_dict(self) -> dict:
         return {
             'user_id': self.user_id,
@@ -129,8 +135,8 @@ class Request(Base):
     class_id = Column('class', Integer, ForeignKey("class.id"), primary_key=True)
     user_id = Column('user', Integer, ForeignKey("user.id"), primary_key=True)
 
-    class_obj = relationship("Class")
-    user_obj = relationship("User")
+    class_obj = relationship("Class", cascade="all, delete")
+    user_obj = relationship("User", cascade="all, delete")
     def to_dict(self) -> dict:
         return {
             'user_id': self.user_id,

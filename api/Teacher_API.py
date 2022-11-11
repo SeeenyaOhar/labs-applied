@@ -32,7 +32,7 @@ def create():
             and 'employment' in Teacher_Data):
         diplomas = Teacher_Data['diplomas']
         employment = Teacher_Data['employment']
-        new_teacher = Teacher(user_id=new_user.id, diplomas=diplomas, employment=employment)
+        new_teacher = Teacher(user=new_user, diplomas=diplomas, employment=employment)
         session.add(new_teacher)
         try:
             session.commit()
