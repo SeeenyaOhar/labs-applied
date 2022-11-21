@@ -1,7 +1,9 @@
 from flask import make_response, Response, abort, request, Blueprint
+from flask_jwt_extended import jwt_required, current_user
 
 from Encoder import AlchemyEncoder
-from models.models import User, Teacher
+from errors.auth_errors import InsufficientRights
+from models.models import User, Teacher, Role
 import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -15,7 +17,10 @@ teacher_api = Blueprint('teacher_api', __name__)
 
 
 @teacher_api.route("/api/v1/teacher", methods=['POST'])
+@jwt_required()
 def create():
+    if current_user.role != Role.teacher:
+        raise InsufficientRights("You should be a teacher to add another teacher")
     All_data = request.get_json()
     User_data = All_data.get('User')
     Teacher_Data = All_data.get('Teacher')
@@ -42,11 +47,14 @@ def create():
 
 
 @teacher_api.route("/api/v1/teacher/<user_Id>", methods=['GET'])
-def get_user(user_Id):
+@jwt_required()
+def get_teacher(user_id):
+    if current_user.role != Role.teacher:
+        raise InsufficientRights("Role is not teacher")
     user = session.query(User)
     teacher = session.query(Teacher)
-    currentTeacher = teacher.get(int(user_Id))
-    currentUser = user.get(int(user_Id))
+    currentTeacher = teacher.get(int(user_id))
+    currentUser = user.get(int(user_id))
     if currentUser is None:
         return Response("User doesn't exist", status=404)
     if currentTeacher is None:
@@ -60,7 +68,10 @@ def get_user(user_Id):
 
 
 @teacher_api.route("/api/v1/teacher/<user_Id>", methods=['DELETE'])
+@jwt_required()
 def delete_user(user_Id):
+    if current_user.role != Role.teacher:
+        raise InsufficientRights("Role is not teacher")
     user = session.query(User)
     teacher = session.query(Teacher)
     sam = teacher.get(int(user_Id))

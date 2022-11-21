@@ -16,6 +16,7 @@ alembic = "^1.8.1"
 marshmallow = "^3.18.0"
 bcrypt = "^4.0.1"
 psycopg2 = "^2.9.5"
+flask-jwt-extended = "^4.4.4"
 
 
 [build-system]

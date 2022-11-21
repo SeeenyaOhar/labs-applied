@@ -1,7 +1,9 @@
 from flask import make_response, Response, abort, request, Blueprint
+from flask_jwt_extended import jwt_required, current_user
 
 from Encoder import AlchemyEncoder
-from models.models import Request, ClassUser, Class
+from errors.auth_errors import InsufficientRights
+from models.models import Request, ClassUser, Class, Role
 import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -15,7 +17,7 @@ student_api = Blueprint('student_api', __name__)
 
 
 @student_api.route("/api/v1/<user_id>/request/<class_id>", methods=['POST'])
-def create(user_id, class_id):
+def send_request(user_id, class_id):
     try:
         requests = Request(user_id=user_id, class_id=class_id)
         session.add(requests)
@@ -26,7 +28,10 @@ def create(user_id, class_id):
 
 
 @student_api.route("/api/v1/<user_id>/classes", methods=['GET'])
+@jwt_required()
 def get_classes(user_id):
+    if user_id != current_user.id and current_user.role != Role.teacher:
+        raise InsufficientRights("Role should be teacher or you should be the owner of the resource")
     current = session.query(ClassUser).filter(ClassUser.user_id == user_id).all()
     dictclass = [elem.to_dict() for elem in current]
 

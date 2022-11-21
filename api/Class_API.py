@@ -1,8 +1,11 @@
 from flask import make_response, Response, abort, request, Blueprint
+from flask_jwt_extended import jwt_required, current_user
 
 from Encoder import AlchemyEncoder
 import json
-from models.models import Class, Teacher, ClassUser, Request, User
+
+from errors.auth_errors import InsufficientRights
+from models.models import Class, Teacher, ClassUser, Request, User, Role
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
@@ -15,7 +18,10 @@ class_api = Blueprint('class_api', __name__)
 
 
 @class_api.route("/api/v1/class", methods=['POST'])
+@jwt_required()
 def create():
+    if current_user.role != Role.teacher:
+        raise InsufficientRights("You should be teacher to do this")
     Class_data = request.get_json()
     if Class_data is None:
         return Response(status=400)
@@ -27,13 +33,16 @@ def create():
             return Response("Class is already existed", status=402)
         session.add(classes)
         session.commit()
-    except IntegrityError:
+    except IntegrityError as er:
         return Response("Create failed", status=402)
     return Response("Class was created", status=200)
 
 
 @class_api.route("/api/v1/class/student", methods=['POST'])
-def create_student():
+@jwt_required()
+def add_student_to_class():
+    if current_user.role != Role.teacher:
+        raise InsufficientRights("Role should be teacher")
     Student_data = request.get_json()
     try:
         student = ClassUser(**Student_data)
@@ -48,7 +57,8 @@ def create_student():
 
 
 @class_api.route("/api/v1/class/<class_id>", methods=['GET'])
-def get_id(class_id):
+@jwt_required()
+def get_class(class_id):
     classes = session.query(Class).get(class_id)
     if classes is None:
         return Response("Class doesn't exist", status=404)
@@ -60,7 +70,10 @@ def get_id(class_id):
 
 
 @class_api.route("/api/v1/class/<class_id>", methods=['DELETE'])
+@jwt_required()
 def delete_class(class_id):
+    if current_user.role != Role.teacher:
+        raise InsufficientRights("You should be a teacher to delete a class")
     classes = session.query(Class)
     currentClass = classes.get(int(class_id))
     if currentClass is None:
@@ -75,7 +88,7 @@ def delete_class(class_id):
 
 
 @class_api.route("/api/v1/class", methods=['GET'])
-def get():
+def get_all_classes():
     clas = session.query(Class).all()
     classes = [element.to_dict() for element in clas]
     if classes is None:
@@ -88,7 +101,10 @@ def get():
 
 
 @class_api.route("/api/v1/class", methods=['PUT'])
-def put():
+@jwt_required()
+def update_class():
+    if current_user.role != Role.teacher:
+        raise InsufficientRights("You should be a teacher to update a class")
     Class_data = request.get_json()
     if (Class_data is None) and ("id" not in Class_data):
         return Response("Bad request", status=400)
@@ -102,7 +118,10 @@ def put():
 
 
 @class_api.route("/api/v1/class/<student_id>/<class_id>", methods=['DELETE'])
-def delete_student(student_id, class_id):
+@jwt_required()
+def delete_student_from_class(student_id, class_id):
+    if current_user.role != Role.teacher:
+        raise InsufficientRights("You should be a teacher to remove a student from a class")
     currentClass = session.query(ClassUser).filter(
         ClassUser.user_id == student_id, ClassUser.class_id == class_id).first()
     if currentClass is None:
@@ -116,7 +135,10 @@ def delete_student(student_id, class_id):
 
 
 @class_api.route("/api/v1/class/requests/<class_id>", methods=['GET'])
-def get_request(class_id):
+@jwt_required()
+def get_all_requests(class_id):
+    if current_user.role != Role.teacher:
+        raise InsufficientRights("You should be a teacher to remove a student from a class")
     current_request = session.query(Request).filter(Request.class_id == class_id).all()
     dictrequest = [elem.to_dict() for elem in current_request]
     if current_request is None:
@@ -129,7 +151,12 @@ def get_request(class_id):
 
 
 @class_api.route("/api/v1/<class_id>/student", methods=['GET'])
-def get_student(class_id):
+@jwt_required()
+def get_all_students_in_class(class_id):
+    if current_user.role != Role.teacher and \
+        session.query(ClassUser).filter(ClassUser.class_id == class_id and
+                                        ClassUser.user_id == current_user.id).first() is not None:
+        raise InsufficientRights("You have to be in this class to get the list of students")
     current_student = session.query(ClassUser).filter(ClassUser.class_id == class_id).all()
     dictclass = [elem.to_dict() for elem in current_student]
 
