@@ -1,87 +1,71 @@
-from flask import make_response, Response, abort, request, Blueprint
-from flask_jwt_extended import jwt_required, current_user
+from flask import request, Blueprint, jsonify
+from flask_jwt_extended import jwt_required
 
-from Encoder import AlchemyEncoder
-from errors.auth_errors import InsufficientRights
-from models.models import User, Teacher, Role
-import json
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import IntegrityError
-
-engine = create_engine("postgresql://postgres:admin@localhost:5432/Online-Classes-Service")
-Session = sessionmaker(bind=engine)
-session = Session()
+from models.models import User, Teacher
+from services.db import Session
+from services.jwt import teacher_required
 
 teacher_api = Blueprint('teacher_api', __name__)
 
 
 @teacher_api.route("/api/v1/teacher", methods=['POST'])
 @jwt_required()
+@teacher_required()
 def create():
-    if current_user.role != Role.teacher:
-        raise InsufficientRights("You should be a teacher to add another teacher")
+    session = Session()
+
     All_data = request.get_json()
     User_data = All_data.get('User')
+    User_data['role'] = 'teacher'  # role is always teacher for this case
     Teacher_Data = All_data.get('Teacher')
     if User_data is None:
-        return Response("Bad request", status=400)
+        return jsonify({"msg": "Bad request"}), 400
 
-    try:
-        new_user = User(**User_data)
-        session.add(new_user)
-    except IntegrityError:
-        return Response("Create failed", status=402)
+    new_user = User(**User_data)
+    session.add(new_user)
 
-    if ('diplomas' in Teacher_Data
-            and 'employment' in Teacher_Data):
-        diplomas = Teacher_Data['diplomas']
-        employment = Teacher_Data['employment']
-        new_teacher = Teacher(user=new_user, diplomas=diplomas, employment=employment)
-        session.add(new_teacher)
-        try:
-            session.commit()
-        except IntegrityError:
-            return Response("Create failed", status=402)
-        return Response("Teacher was created", status=200)
+    if ('diplomas' not in Teacher_Data
+            or 'employment' not in Teacher_Data):
+        return jsonify({"msg": "No diplomas or employment specified."}), 400
+    diplomas = Teacher_Data['diplomas']
+    employment = Teacher_Data['employment']
+    new_teacher = Teacher(user=new_user, diplomas=diplomas, employment=employment)
+    session.add(new_teacher)
+    session.commit()
+    return jsonify({"msg": "Teacher was created", "id": new_teacher.user_id}), 200
 
 
-@teacher_api.route("/api/v1/teacher/<user_Id>", methods=['GET'])
+@teacher_api.route("/api/v1/teacher/<user_id>", methods=['GET'])
 @jwt_required()
+@teacher_required()
 def get_teacher(user_id):
-    if current_user.role != Role.teacher:
-        raise InsufficientRights("Role is not teacher")
+    session = Session()
     user = session.query(User)
     teacher = session.query(Teacher)
     currentTeacher = teacher.get(int(user_id))
     currentUser = user.get(int(user_id))
+
     if currentUser is None:
-        return Response("User doesn't exist", status=404)
+        return jsonify({"msg": "User doesn't exist"}), 404
     if currentTeacher is None:
-        return Response("Teacher doesn't exist", status=404)
-    return Response(
-        response=json.dumps(currentUser.to_dict(), cls=AlchemyEncoder) + json.dumps(currentTeacher.to_dict(),
-                                                                                    cls=AlchemyEncoder),
-        status=200,
-        mimetype='application/json'
-    )
+        return jsonify({"msg": "Teacher doesn't exist"}), 404
+
+    return jsonify({'user': currentUser.to_dict(),
+                    'teacher': currentTeacher.to_dict()}), 200
 
 
-@teacher_api.route("/api/v1/teacher/<user_Id>", methods=['DELETE'])
+@teacher_api.route("/api/v1/teacher/<user_id>", methods=['DELETE'])
 @jwt_required()
-def delete_user(user_Id):
-    if current_user.role != Role.teacher:
-        raise InsufficientRights("Role is not teacher")
+@teacher_required()
+def delete_user(user_id):
+    session = Session()
     user = session.query(User)
     teacher = session.query(Teacher)
-    sam = teacher.get(int(user_Id))
-    currentUser = user.get(int(user_Id))
+    sam = teacher.get(int(user_id))
+    currentUser = user.get(int(user_id))
     if currentUser is None:
-        return Response("teacher doesn't exist", status=404)
+        return jsonify({"msg": "Teacher doesn't exist"}), 404
     session.delete(sam)
     session.delete(currentUser)
-    try:
-        session.commit()
-    except IntegrityError:
-        return Response("Delete failed", status=402)
-    return Response("teacher was deleted", status=200)
+    session.commit()
+    return jsonify({"msg": "Teacher was deleted"}), 200

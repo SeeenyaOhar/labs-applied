@@ -1,15 +1,12 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum, ARRAY
+from sqlalchemy import Column, Integer, String, ForeignKey, Enum, ARRAY, DateTime
 from sqlalchemy.orm import declarative_base, relationship, validates
 import enum
 import re
 import bcrypt
+
 Base = declarative_base()
 
-def validate_name(name):
-    length = len(name)
-    if length <= 3 or length > 40:
-        raise ValueError("Length of username should be less than 40 and more than 4 characters long")
-    return name
+
 class Class(Base):
     __tablename__ = "class"
 
@@ -18,15 +15,19 @@ class Class(Base):
     description = Column(String)
     teacher_id = Column(Integer, ForeignKey("teacher.user_id"))
 
-    teacher = relationship("Teacher", cascade="all, delete")
-    request = relationship("Request", cascade="all, delete")
+    class_users = relationship("ClassUser", cascade="all, delete")
+    requests = relationship("Request", cascade="all, delete")
+    messages = relationship("Message", cascade="all, delete")
+
     def to_dict(self) -> dict:
         return {
+            'id': self.id,
             'title': self.title,
             'description': self.description,
             'teacher_id': self.teacher_id
 
         }
+
 
 class Role(enum.Enum):
     teacher = 1
@@ -37,35 +38,29 @@ class User(Base):
     __tablename__ = "user"
 
     id = Column(Integer, primary_key=True)
-    username = Column(String,unique=True)
+    username = Column(String, unique=True)
     firstName = Column(String)
     lastName = Column(String)
-    email = Column(String,unique=True)
+    email = Column(String, unique=True)
     password = Column(String)
-    phone = Column(String,unique=True)
+    phone = Column(String, unique=True)
     role = Column(Enum(Role))
 
-    teacher =relationship("Teacher", cascade="all, delete")
-    request = relationship("Request",cascade="all, delete")
-    class_user = relationship("ClassUser",cascade="all, delete")
+    teacher = relationship("Teacher", cascade="all, delete")
+
     def to_dict(self) -> dict:
         return {
+            'id': self.id,
             'firstName': self.firstName,
             'lastName': self.lastName,
+            'username': self.username,
             'password': self.password,
             'phone': self.phone,
             'email': self.email,
             'role': str(self.role)
         }
 
-    @validates("firstName")
-    def validate_firstName(self, key, firstName):
-        return validate_name(firstName)
-
-    @validates("lastName")
-    def validate_last_name(self, key, lastName):
-        return validate_name(lastName)
-
+    # These fields are used for validation
     __email_r = re.compile("""(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[""" +
                            """\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*\")""" +
                            """@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|""" +
@@ -73,6 +68,21 @@ class User(Base):
                            """(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])""")
     __password_r = re.compile("^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$")
     __phone_r = re.compile("^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$")
+
+    @staticmethod
+    def validate_name(name):
+        length = len(name)
+        if length <= 3 or length > 40:
+            raise ValueError("Length of username should be less than 40 and more than 4 characters long")
+        return name
+
+    @validates("firstName")
+    def validate_first_name(self, key, firstName):
+        return self.validate_name(firstName)
+
+    @validates("lastName")
+    def validate_last_name(self, key, lastName):
+        return self.validate_name(lastName)
 
     @validates("email")
     def validate_email(self, key, email):
@@ -86,15 +96,24 @@ class User(Base):
         if User.__password_r.match(password) is None:
             raise ValueError("This is not password(8 characters long+, one letter and number")
         password = bytes(password, 'utf-8')
-        password = bcrypt.hashpw(password,bcrypt.gensalt(15))
+        password = bcrypt.hashpw(password, bcrypt.gensalt(15))
         return password.decode("utf-8")
 
     @validates("phone")
     def validate_phone(self, key, phone):
-        if User.__phone_r.match(phone) is None:
+        match = User.__phone_r.match(phone)
+        if match is None:
             raise ValueError("This is not a phone number")
 
         return phone
+
+    @validates("role")
+    def validate_role(self, key, role):
+        if role not in [r.name for r in Role] and \
+                role not in [r for r in Role]:
+            raise ValueError("This is not a role")
+
+        return role
 
 
 class Teacher(Base):
@@ -102,11 +121,9 @@ class Teacher(Base):
 
     user_id = Column(Integer, ForeignKey("user.id"), primary_key=True)
 
-    user = relationship("User")
+    user = relationship("User", cascade="all, delete")
     diplomas = Column(ARRAY(String))
     employment = Column(ARRAY(String))
-
-    classes=relationship("Class",cascade="all, delete")
 
     def to_dict(self) -> dict:
         return {
@@ -121,13 +138,15 @@ class ClassUser(Base):
     class_id = Column('class', Integer, ForeignKey("class.id"), primary_key=True)
     user_id = Column('user', Integer, ForeignKey("user.id"), primary_key=True)
 
-    class_obj = relationship("Class" ,cascade="all, delete")
-    user_obj = relationship("User",cascade="all, delete")
+    class_obj = relationship("Class")
+    user_obj = relationship("User")
+
     def to_dict(self) -> dict:
         return {
             'user_id': self.user_id,
             'class_id': self.class_id
         }
+
 
 class Request(Base):
     __tablename__ = "request"
@@ -135,10 +154,32 @@ class Request(Base):
     class_id = Column('class', Integer, ForeignKey("class.id"), primary_key=True)
     user_id = Column('user', Integer, ForeignKey("user.id"), primary_key=True)
 
-    class_obj = relationship("Class", cascade="all, delete")
-    user_obj = relationship("User", cascade="all, delete")
+    class_obj = relationship("Class")
+    user_obj = relationship("User")
+
     def to_dict(self) -> dict:
         return {
             'user_id': self.user_id,
             'class_id': self.class_id
+        }
+
+
+class Message(Base):
+    __tablename__ = "message"
+
+    id = Column(Integer, primary_key=True)
+    content = Column(String, nullable=True)
+    date = Column(DateTime, nullable=False)
+    user = Column(Integer, ForeignKey("user.id"))
+    class_ = Column(Integer, ForeignKey("class.id"))
+
+    cls = relationship('Class')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'content': self.content,
+            'date': str(self.date),
+            'user': self.user,
+            'class': self.class_
         }

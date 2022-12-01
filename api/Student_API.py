@@ -1,46 +1,43 @@
-from flask import make_response, Response, abort, request, Blueprint
+from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, current_user
+from sqlalchemy import exists
 
-from Encoder import AlchemyEncoder
 from errors.auth_errors import InsufficientRights
+from errors.general_errors import InvalidRequest
 from models.models import Request, ClassUser, Class, Role
-import json
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import IntegrityError
-
-engine = create_engine("postgresql://postgres:admin@localhost:5432/Online-Classes-Service")
-Session = sessionmaker(bind=engine)
-session = Session()
+from services.db import Session
 
 student_api = Blueprint('student_api', __name__)
 
 
-@student_api.route("/api/v1/<user_id>/request/<class_id>", methods=['POST'])
-def send_request(user_id, class_id):
-    try:
-        requests = Request(user_id=user_id, class_id=class_id)
+@student_api.route("/api/v1/student/request/<class_id>", methods=['POST'])
+@jwt_required()
+def send_request(class_id):
+    with Session.begin() as session:
+        if session.query(exists().where(ClassUser.user_id == current_user.id and ClassUser.class_id == class_id)).scalar():
+            raise InvalidRequest("User has already been assigned to this class.")
+        if session.query(exists().where(Request.user_id == current_user.id and Request.class_id == class_id)).scalar():
+            raise InvalidRequest("You have already sent a request to this class.")
+
+        requests = Request(user_id=current_user.id, class_id=class_id)
+
         session.add(requests)
         session.commit()
-    except IntegrityError:
-        return Response("Bad request", status=402)
-    return Response("the request has been sent", status=200)
+
+        return jsonify({"msg": "The request has been sent"}), 200
 
 
-@student_api.route("/api/v1/<user_id>/classes", methods=['GET'])
+@student_api.route("/api/v1/classes/<user_id>", methods=['GET'])
 @jwt_required()
 def get_classes(user_id):
-    if user_id != current_user.id and current_user.role != Role.teacher:
-        raise InsufficientRights("Role should be teacher or you should be the owner of the resource")
-    current = session.query(ClassUser).filter(ClassUser.user_id == user_id).all()
-    dictclass = [elem.to_dict() for elem in current]
+    with Session(expire_on_commit=False) as session:
+        if user_id != current_user.id and current_user.role != Role.teacher:
+            raise InsufficientRights("Role should be teacher or you should be the owner of the resource")
+        current = session.query(ClassUser).filter(ClassUser.user_id == user_id).all()
+        dictclass = [elem.to_dict() for elem in current]
 
-    current_Class = [session.query(Class).filter_by(id=i['class_id']).first().to_dict() for i in dictclass]
+        current_class = [session.query(Class).filter_by(id=i['class_id']).first().to_dict() for i in dictclass]
 
-    if current_Class is None:
-        return Response("class doesn't exist", status=404)
-    return Response(
-        response=json.dumps(current_Class, cls=AlchemyEncoder),
-        status=200,
-        mimetype='application/json'
-    )
+        if current_class is None:
+            return jsonify({"msg": "class doesn't exist"}), 404
+        return jsonify(current_class), 200

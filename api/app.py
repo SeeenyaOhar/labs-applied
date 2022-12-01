@@ -1,13 +1,17 @@
+import psycopg2.errors
 from flask import Flask, jsonify
-from api.User_API import user_api, Session
-from api.Teacher_API import teacher_api
-from api.Class_API import class_api
-from api.Student_API import student_api
 from flask_jwt_extended import JWTManager
+from sqlalchemy.exc import IntegrityError
 
+from api.Class_API import class_api
+from api.Messages_API import messages_api
+from api.Student_API import student_api
+from api.Teacher_API import teacher_api
+from api.User_API import user_api
 from configuration.config import configure
 from errors.auth_errors import InvalidCredentials, InsufficientRights
 from models.models import User
+from services.db import Session
 
 app = Flask(__name__)
 
@@ -18,6 +22,9 @@ app.register_blueprint(teacher_api)
 app.register_blueprint(class_api)
 
 app.register_blueprint(student_api)
+
+app.register_blueprint(messages_api)
+
 configure(app)
 
 jwt = JWTManager(app)
@@ -28,6 +35,11 @@ def hello_world():
     return "Hello, World 19"
 
 
+@app.errorhandler(IntegrityError)
+def integrity_error_handler(e : IntegrityError):
+    return jsonify({'msg': str(e)}), 400
+
+
 @app.errorhandler(InvalidCredentials)
 def invalid_credentials_handler(e):
     return jsonify({'msg': str(e)}), 401
@@ -36,6 +48,11 @@ def invalid_credentials_handler(e):
 @app.errorhandler(InsufficientRights)
 def invalid_credentials_handler(e):
     return jsonify({'msg': str(e)}), 403
+
+
+@app.errorhandler(Exception)
+def invalid_credentials_handler(e):
+    return jsonify({'msg': str(e)}), 400
 
 
 @jwt.user_lookup_loader

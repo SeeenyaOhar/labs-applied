@@ -12,6 +12,9 @@ tags:
   - name: requests
     description: Operations of student invitation requests.
 paths:
+
+  # Class
+
   /class/{class_id}:
     get:
       tags:
@@ -91,45 +94,6 @@ paths:
           description: Bad request.
         '404':
           description: No classes have been found.
-    put:
-      tags:
-        - class
-      summary: Update an existing class
-      description: Update an existing class by id
-      operationId: updateClass
-      requestBody:
-        description: Update an existent class
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Class'
-          application/xml:
-            schema:
-              $ref: '#/components/schemas/Class'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Class'
-        required: true
-      responses:
-        '200':
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Class'          
-            application/xml:
-              schema:
-                $ref: '#/components/schemas/Class'
-        '400':
-          description: Invalid ID supplied
-        '403':
-          description: Insufficient rights
-        '404':
-          description: Class not found
-        '405':
-          description: Validation exception
-      security:
-        - online_classes_auth: [teacher]
     post:
       tags:
         - class
@@ -167,11 +131,49 @@ paths:
           description: Invalid input
       security:
         - online_classes_auth: [teacher]
+    put:
+      tags:
+        - class
+      summary: Update an existing class
+      description: Update an existing class by id
+      operationId: updateClass
+      requestBody:
+        description: Update an existent class
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Class'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Class'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Class'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Class'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Class'
+        '400':
+          description: Invalid ID supplied
+        '403':
+          description: Insufficient rights
+        '404':
+          description: Class not found
+        '405':
+          description: Validation exception
+      security:
+        - online_classes_auth: [ teacher ]
   /class/student:
     post:
       tags: 
         - class
-        - student
       summary: Add a student by Request entity.
       requestBody:
         content:
@@ -189,25 +191,10 @@ paths:
           description: Request to add a student to a class is not valid!
       security:
         - online_classes_auth: [teacher]
-  /class/{student_id}/{class_id}:
     delete:
       tags:
         - class
-        - student
       summary: Deletes a student from the class specified in the parameters.
-      parameters:
-         - name: student_id
-           required: true
-           in: path
-           description: Id of a student to be removed from the class
-           schema:
-             type: integer
-         - name: class_id
-           required: true
-           in: path
-           description: Id of a class, the student has to be deleted from
-           schema:
-            type: integer
       responses:
         '200':
           description: Successful operation!
@@ -220,7 +207,6 @@ paths:
   /class/requests/{class_id}:
     get:
       tags:
-        - class
         - requests
       summary: Get all requests to join to this class.
       parameters:
@@ -247,14 +233,118 @@ paths:
           description: Requests have not been found!
       security:
         - online_classes_auth: [teacher]
-        
-    
+  /class/messages/{class_id}:
+    get:
+      tags:
+        - class
+      summary: Get all messages in this class.
+      responses:
+        '200':
+          description: Successful operation!
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '400':
+          description: Bad request!
+        '403':
+          description: Insufficient rights to retrieve the messages
+        '404':
+          description: No such class exists.
+      security:
+        - online_classes_auth: [ student, teacher ]
+  /class/message/:
+    get:
+      tags:
+        - class
+      summary: Retrieve a specific message in the class
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+      responses:
+        '200':
+          description: Successful operation!
+        '400':
+          description: Bad request!
+        '403':
+          description: Insufficient rights to get a message in this class.
+        '404':
+          description: No such message exists.
+      security:
+        - online_classes_auth: [ student, teacher ]
+    post:
+      tags:
+        - class
+      summary: Create a message in the class
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+      responses:
+        '200':
+          description: Successful operation!
+        '400':
+          description: Bad request!
+        '403':
+          description: Insufficient rights to create a message in this class.
+      security:
+        - online_classes_auth: [ student, teacher ]
+    put:
+      tags:
+        - class
+      summary: Updates a message in the class(based on the id)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+      responses:
+        '200':
+          description: Successful operation!
+        '400':
+          description: Bad request!
+        '403':
+          description: Insufficient rights to update a message in this class.
+      security:
+        - online_classes_auth: [ student, teacher ]
+    delete:
+      tags:
+        - class
+      summary: Delete a message in the class
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+      responses:
+        '200':
+          description: Successfully deleted the message.
+        '400':
+          description: Bad request!
+        '403':
+          description: Insufficient rights to create a message in this class.
+      security:
+        - online_classes_auth: [ student, teacher ]
+
+  # User
+
   /user:
     post:
       tags:
         - user
-      summary: Create user
-      description: This can only be done by the logged in user.
+      summary: Creates a unique user.
+      description: Based on the rights of the user role is going to be different.
       operationId: createUser
       requestBody:
         description: Created user object
@@ -304,6 +394,8 @@ paths:
                 $ref: '#/components/schemas/User'
         default:
           description: successful operation
+      security:
+        - online_classes_auth: [ teacher, user ]
       
   /user/login:
     get:
@@ -348,18 +440,9 @@ paths:
                 type: string
         '400':
           description: Invalid username/password supplied
-      
-  /user/logout:
-    get:
-      tags:
-        - user
-      summary: Logs out current logged in user session
-      description: ''
-      operationId: logoutUser
-      parameters: []
-      responses:
-        default:
-          description: successful operation
+      security:
+        - online_classes_auth: [ teacher, user ]
+
   /user/{username}:
     get:
       tags:
@@ -388,6 +471,8 @@ paths:
           description: Invalid username supplied
         '404':
           description: User not found
+      security:
+        - online_classes_auth: [ teacher, user ]
     put:
       tags:
         - user
@@ -416,6 +501,8 @@ paths:
       responses:
         default:
           description: successful operation
+      security:
+        - online_classes_auth: [ teacher, user ]
     delete:
       tags:
         - user
@@ -435,11 +522,13 @@ paths:
         '404':
           description: User not found
       security:
-        - online_classes_auth: []
+        - online_classes_auth: [ teacher, user ]
+
+  # Student
+
   /student/request/{class_id}:
     post:
       tags: 
-        - class
         - student
         - requests
       summary: Add a student request to be added to the class.
@@ -462,7 +551,6 @@ paths:
   /student/classes:
     get:
       tags:
-        - class
         - student
       summary: Get all assigned classes by a student.
       description: Retrieves every class from Class table that the student is assigned to(if it's a teacher, returns an array with all classes, where he/she is a teacher)
@@ -552,6 +640,20 @@ components:
           type: integer
         user:
           type: integer
+    Message:
+      properties:
+        id:
+          type: integer
+        content:
+          type: string
+        date:
+          type: string
+          format: date-time
+        user:
+          type: integer
+        class:
+          type: integer
+
   securitySchemes:
     online_classes_auth:
       type: http
