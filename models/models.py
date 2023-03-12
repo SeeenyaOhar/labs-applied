@@ -25,7 +25,6 @@ class Class(Base):
             'title': self.title,
             'description': self.description,
             'teacher_id': self.teacher_id
-
         }
 
 

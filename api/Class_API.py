@@ -2,6 +2,7 @@ from flask import request, Blueprint, jsonify
 from flask_jwt_extended import jwt_required, current_user
 
 from errors.auth_errors import InsufficientRights
+from errors.general_errors import InvalidRequest
 from models.models import Class, ClassUser, Request, User, Role
 from services.db import Session
 from services.jwt import teacher_required
@@ -88,6 +89,9 @@ def add_student_to_class():
             raise InsufficientRights("Role should be teacher")
         student_data = request.get_json()
         class_user = ClassUser(**student_data)
+        students_in_class = session.query(ClassUser).filter(ClassUser.class_id == class_user.class_id).all()
+        if len(students_in_class) > 5:
+            raise InvalidRequest("There are already more than 5 people in this class")
         requests = session.query(Request).filter(
             Request.user_id == class_user.user_id and Request.class_id == class_user.class_id).first()
         session.add(class_user)
@@ -149,6 +153,4 @@ def get_all_students_in_class(class_id):
         if current_student is None:
             return jsonify({"msg": "class doesn't exist"}), 404
         return jsonify(current_stud), 200
-
-
 
