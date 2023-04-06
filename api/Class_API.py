@@ -3,10 +3,14 @@ from flask_jwt_extended import jwt_required, current_user
 
 from errors.auth_errors import InsufficientRights
 from errors.general_errors import InvalidRequest
+from errors.general_errors import ResourceNotFound
+
 from models.models import Class, ClassUser, Request, User, Role
+from models.models import Thumbnail
 from services.db import Session
 from services.jwt import teacher_required
 
+import base64
 class_api = Blueprint('class_api', __name__)
 
 
@@ -153,4 +157,16 @@ def get_all_students_in_class(class_id):
         if current_student is None:
             return jsonify({"msg": "class doesn't exist"}), 404
         return jsonify(current_stud), 200
+
+@class_api.route("/api/v1/class/img/<class_id>", methods=['GET'])
+def get_pic(class_id):
+    class_id = int(class_id)
+    with Session.begin() as session:
+        if session.query(Class).filter(Class.id == class_id).first() is None:
+            raise ResourceNotFound("There is no class with such id.")
+        thumbnail = session.query(Thumbnail).filter(Thumbnail.class_id == class_id).first()
+
+        return jsonify(thumbnail=base64.b64encode(thumbnail.image).decode("utf-8") if thumbnail is not None else None), 200
+
+
 

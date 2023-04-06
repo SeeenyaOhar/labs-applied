@@ -13,7 +13,7 @@ def super_user(client):
     })
     token = login_response.json['access_token']
     auth_header = {'Authorization': f"Bearer {token}"}
-    return auth_header, 129
+    return auth_header, 1
 
 
 class MyTest(TestCase):

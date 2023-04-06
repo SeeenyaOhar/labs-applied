@@ -141,8 +141,8 @@ def delete_message():
     with Session() as session:
         auth_message(data.get('id'), session)
 
-        session.query(Message) \
-            .filter(Message.id == data.get('id')) \
-            .delete(synchronize_session="fetch")
+        message = session.query(Message) \
+            .filter(Message.id == data.get('id')).first()
+        session.delete(message)
 
     return jsonify({"msg": "Message has been successfully deleted!"}), 200

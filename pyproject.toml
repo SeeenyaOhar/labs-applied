@@ -20,6 +20,7 @@ flask-jwt-extended = "^4.4.4"
 flask-testing = "^0.8.1"
 urllib3 = "^1.26.12"
 coverage = "^6.5.0"
+flask-cors = "^3.0.10"
 
 
 [build-system]

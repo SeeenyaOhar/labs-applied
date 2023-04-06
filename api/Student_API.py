@@ -31,7 +31,7 @@ def send_request(class_id):
 @jwt_required()
 def get_classes(user_id):
     with Session(expire_on_commit=False) as session:
-        if user_id != current_user.id and current_user.role != Role.teacher:
+        if int(user_id) != current_user.id and current_user.role != Role.teacher:
             raise InsufficientRights("Role should be teacher or you should be the owner of the resource")
         current = session.query(ClassUser).filter(ClassUser.user_id == user_id).all()
         dictclass = [elem.to_dict() for elem in current]

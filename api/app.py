@@ -1,6 +1,7 @@
 import psycopg2.errors
 from flask import Flask, jsonify
 from flask_jwt_extended import JWTManager
+from flask_cors import CORS
 from sqlalchemy.exc import IntegrityError
 
 from api.Class_API import class_api
@@ -14,6 +15,7 @@ from models.models import User
 from services.db import Session
 
 app = Flask(__name__)
+CORS(app)
 
 app.register_blueprint(user_api)
 

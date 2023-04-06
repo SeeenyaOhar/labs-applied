@@ -61,7 +61,7 @@ def delete_user(user_id):
     return jsonify({"msg": "User was deleted"}), 200
 
 
-@user_api.route("/api/v1/user/login", methods=['GET'])
+@user_api.route("/api/v1/user/login", methods=['POST'])
 def login_user():
     data = request.get_json()
     if data is None:
@@ -71,11 +71,11 @@ def login_user():
             with Session.begin() as session:
                 user = session.query(User).filter_by(username=data['username']).first()
 
-                if not bcrypt.checkpw(data['password'].encode("utf-8"), user.password.encode("utf-8")):
-                    return jsonify({"msg": "Invalid password or username specified"}), 404
+                if user is None or not bcrypt.checkpw(data['password'].encode("utf-8"), user.password.encode("utf-8")):
+                    return jsonify({"msg": "Invalid password or username specified"}), 401
 
                 access_token = create_access_token(identity=data['username'],
-                                                   additional_claims={'role': user.role.name})
+                                                   additional_claims={'role': user.role.name, 'id': user.id})
                 return jsonify(access_token=access_token), 200
     except IntegrityError:
         return jsonify({"msg": "Invalid username or password specified"}), 400

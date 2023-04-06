@@ -1,4 +1,12 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum, ARRAY, DateTime
+from sqlalchemy import Column
+from sqlalchemy import Integer
+from sqlalchemy import String
+from sqlalchemy import ForeignKey
+from sqlalchemy import Enum 
+from sqlalchemy import ARRAY
+from sqlalchemy import DateTime
+from sqlalchemy import LargeBinary
+
 from sqlalchemy.orm import declarative_base, relationship, validates
 import enum
 import re
@@ -18,13 +26,16 @@ class Class(Base):
     class_users = relationship("ClassUser", cascade="all, delete")
     requests = relationship("Request", cascade="all, delete")
     messages = relationship("Message", cascade="all, delete")
+    teacher = relationship("Teacher")
 
     def to_dict(self) -> dict:
         return {
             'id': self.id,
             'title': self.title,
             'description': self.description,
-            'teacher_id': self.teacher_id
+            'teacher_id': self.teacher_id,
+            'teacher_first_name': self.teacher.user.firstName,
+            'teacher_last_name': self.teacher.user.lastName
         }
 
 
@@ -182,3 +193,11 @@ class Message(Base):
             'user': self.user,
             'class': self.class_
         }
+
+
+class Thumbnail(Base):
+    __tablename__ = "class_thumbnail"
+
+    id = Column(Integer, primary_key=True)
+    class_id = Column(Integer, ForeignKey("class.id"))
+    image = Column(LargeBinary())
