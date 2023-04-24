@@ -15,14 +15,13 @@ class_api = Blueprint('class_api', __name__)
 
 
 @class_api.route("/api/v1/class/<class_id>", methods=['GET'])
-@jwt_required()
 def get_class(class_id):
     with Session(expire_on_commit=False) as session:
         classes = session.query(Class).get(class_id)
         if classes is None:
             return jsonify({"msg": "Class doesn't exist"}), 404
 
-    return jsonify(classes.to_dict()), 200
+        return jsonify(classes.to_dict()), 200
 
 
 @class_api.route("/api/v1/class/<class_id>", methods=['DELETE'])

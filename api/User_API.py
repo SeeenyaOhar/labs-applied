@@ -1,12 +1,13 @@
 import bcrypt
 from flask import request, Blueprint, jsonify
-from flask_jwt_extended import jwt_required, current_user, create_access_token
+from flask_jwt_extended import jwt_required, current_user, create_access_token, get_jwt_identity
 from sqlalchemy.exc import IntegrityError
 
 from errors.auth_errors import InsufficientRights
 from models.models import User, Role
 from services.db import Session
 from services.jwt import teacher_required
+from psycopg2.errors import UniqueViolation
 
 user_api = Blueprint('user_api', __name__)
 
@@ -25,19 +26,18 @@ def create_user():
     session.add(new_user)
     try:
         session.commit()
-    except IntegrityError:
-        return jsonify({"msg": "Create failed"}), 400
+    except IntegrityError as e:
+        return jsonify({"msg": "Couldn't create a user, please check the fields and try again."}), 400
 
     return jsonify({"msg": "User has been created", "id": new_user.id}), 200
 
 
 @user_api.route("/api/v1/user/<user_id>", methods=['GET'])
 @jwt_required()
-@teacher_required()
 def get_user(user_id):
     with Session() as session:
         user = session.query(User)
-        currentUser = user.get(int(user_id))
+        currentUser = user.get(int(user_id) if user_id else {"username": get_jwt_identity()})
 
         if currentUser is None:
             return jsonify({"msg": "User doesn't exist"}), 404
@@ -46,6 +46,17 @@ def get_user(user_id):
 
         return jsonify(currentUser.to_dict()), 200
 
+@user_api.route("/api/v1/user", methods=['GET'])
+@jwt_required()
+def get_current_user():
+    with Session() as session:
+        user = session.query(User)
+        currentUser = user.filter(User.username == get_jwt_identity()).first()
+
+        if currentUser is None:
+            return jsonify({"msg": "User doesn't exist"}), 404
+
+        return jsonify(currentUser.to_dict()), 200
 
 @user_api.route("/api/v1/user/<user_id>", methods=['DELETE'])
 @jwt_required()

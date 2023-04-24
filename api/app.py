@@ -39,6 +39,9 @@ def hello_world():
 
 @app.errorhandler(IntegrityError)
 def integrity_error_handler(e : IntegrityError):
+    if isinstance(e.orig, psycopg2.errors.UniqueViolation):
+        e = e.orig
+        return unique_violation_handler(e)
     return jsonify({'msg': str(e)}), 400
 
 
@@ -48,13 +51,19 @@ def invalid_credentials_handler(e):
 
 
 @app.errorhandler(InsufficientRights)
-def invalid_credentials_handler(e):
+def forbidden_handler(e):
     return jsonify({'msg': str(e)}), 403
 
 
+def unique_violation_handler(e: psycopg2.errors.UniqueViolation):
+    print(e.args)
+    return jsonify({'msg': 'Such entity with these params already exists'}), 400
+
 @app.errorhandler(Exception)
-def invalid_credentials_handler(e):
+def exception_handler(e):
     return jsonify({'msg': str(e)}), 400
+
+
 
 
 @jwt.user_lookup_loader
