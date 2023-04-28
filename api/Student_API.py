@@ -1,5 +1,8 @@
 from flask import Blueprint, jsonify
-from flask_jwt_extended import jwt_required, current_user
+from flask_jwt_extended import jwt_required
+from flask_jwt_extended import current_user
+from flask_jwt_extended import get_jwt_identity
+from typing import List
 from sqlalchemy import exists
 
 from errors.auth_errors import InsufficientRights
@@ -41,3 +44,14 @@ def get_classes(user_id):
         if current_class is None:
             return jsonify({"msg": "class doesn't exist"}), 404
         return jsonify(current_class), 200
+    
+@student_api.roue("/api/v1/student/requests", methods=['GET'])
+@jwt_required
+def get_student_requests():
+    with Session(expire_on_commit=False) as session:
+        user_id = current_user.id
+        requests: List[Request] = session.query(Request).filter(Request.user_id == user_id)
+        requests = [i.to_dict() for i in requests]
+        
+        return jsonify(requests), 200
+
