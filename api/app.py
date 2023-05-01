@@ -10,7 +10,9 @@ from api.Student_API import student_api
 from api.Teacher_API import teacher_api
 from api.User_API import user_api
 from configuration.config import configure
-from errors.auth_errors import InvalidCredentials, InsufficientRights
+from errors.auth_errors import InvalidCredentials
+from errors.auth_errors import InsufficientRights
+from errors.general_errors import InvalidRequest
 from models.models import User
 from services.db import Session
 
@@ -55,6 +57,10 @@ def forbidden_handler(e):
     return jsonify({'msg': str(e)}), 403
 
 
+@app.errorhandler(InvalidRequest)
+def invalid_request_handler(e):
+    return jsonify(msg=str(e)), 400
+
 def unique_violation_handler(e: psycopg2.errors.UniqueViolation):
     print(e.args)
     return jsonify({'msg': 'Such entity with these params already exists'}), 400
@@ -62,9 +68,6 @@ def unique_violation_handler(e: psycopg2.errors.UniqueViolation):
 @app.errorhandler(Exception)
 def exception_handler(e):
     return jsonify({'msg': str(e)}), 400
-
-
-
 
 @jwt.user_lookup_loader
 def user_lookup_callback(_jwt_header, jwt_data):

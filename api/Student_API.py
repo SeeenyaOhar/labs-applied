@@ -1,7 +1,6 @@
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required
 from flask_jwt_extended import current_user
-from flask_jwt_extended import get_jwt_identity
 from typing import List
 from sqlalchemy import exists
 
@@ -17,9 +16,9 @@ student_api = Blueprint('student_api', __name__)
 @jwt_required()
 def send_request(class_id):
     with Session.begin() as session:
-        if session.query(exists().where(ClassUser.user_id == current_user.id and ClassUser.class_id == class_id)).scalar():
+        if session.query(ClassUser).filter_by(user_id = current_user.id, class_id = int(class_id)).first():
             raise InvalidRequest("User has already been assigned to this class.")
-        if session.query(exists().where(Request.user_id == current_user.id and Request.class_id == class_id)).scalar():
+        if session.query(Request).filter_by(user_id = current_user.id, class_id = int(class_id)).first() is not None:
             raise InvalidRequest("You have already sent a request to this class.")
 
         requests = Request(user_id=current_user.id, class_id=class_id)
@@ -45,8 +44,8 @@ def get_classes(user_id):
             return jsonify({"msg": "class doesn't exist"}), 404
         return jsonify(current_class), 200
     
-@student_api.roue("/api/v1/student/requests", methods=['GET'])
-@jwt_required
+@student_api.route("/api/v1/student/requests", methods=['GET'])
+@jwt_required()
 def get_student_requests():
     with Session(expire_on_commit=False) as session:
         user_id = current_user.id

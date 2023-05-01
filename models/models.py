@@ -184,6 +184,7 @@ class Message(Base):
     class_ = Column(Integer, ForeignKey("class.id"))
 
     cls = relationship('Class')
+    usr: User = relationship('User')
 
     def to_dict(self):
         return {
@@ -191,7 +192,9 @@ class Message(Base):
             'content': self.content,
             'date': str(self.date),
             'user': self.user,
-            'class': self.class_
+            'cls': self.class_,
+            'fullname': f'{self.usr.firstName} {self.usr.lastName}',
+            'username': self.usr.username
         }
 
 

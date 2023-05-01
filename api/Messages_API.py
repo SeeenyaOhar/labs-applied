@@ -8,7 +8,7 @@ from errors.auth_errors import InsufficientRights
 from errors.general_errors import ResourceNotFound, InvalidRequest
 from models.models import Message, Class, ClassUser
 from services.db import Session
-
+from models.models import Role
 messages_api = Blueprint('messages_api', __name__)
 
 
@@ -22,7 +22,7 @@ def authorize_class(class_id, session):
         raise ResourceNotFound("Such class doesn't exist")
 
     if class_.teacher_id != current_user.id and \
-            not session.query(exists().where(ClassUser.user_id == current_user.id)).scalar():
+            not session.query(ClassUser).filter_by(user_id=current_user.id, class_id=class_.id).first():
         raise InsufficientRights("Not enough rights to access the messages of this class")
 
 
@@ -89,13 +89,13 @@ def get_message():
 @messages_api.route("/api/v1/class/message", methods=['POST'])
 @jwt_required()
 def create_message():
-    data = request.json
+    data: dict = request.json
 
     if data is None:
         return jsonify({"msg": "JSON Data is empty!"}), 400
 
-    with Session() as session:
-        class_id = data.get('class_')
+    with Session(expire_on_commit=False) as session:
+        class_id = data.get('cls')
         authorize_class(class_id, session)
         if 'date' in data:
             raise InvalidRequest("Date should not be specified. \n"
@@ -103,6 +103,8 @@ def create_message():
 
         data['date'] = datetime.now()
         data['user'] = current_user.id
+        data['class_'] = class_id
+        data.pop('cls')
         message = Message(**data)
 
         session.add(message)
@@ -120,7 +122,8 @@ def update_message():
         return jsonify({"msg": "JSON Data is empty!"}), 400
 
     with Session() as session:
-        auth_message(data.get('id'), session)
+        if current_user.role != Role.teacher:
+            auth_message(data.get('id'), session)
 
         message = Message(**data)
         session.query(Message) \
@@ -130,19 +133,16 @@ def update_message():
     return jsonify({"msg": "Message has been successfully updated!"}), 200
 
 
-@messages_api.route("/api/v1/class/message", methods=['DELETE'])
+@messages_api.route("/api/v1/class/message/<message_id>", methods=['DELETE'])
 @jwt_required()
-def delete_message():
-    data = request.json
-
-    if data is None:
-        return jsonify({"msg": "JSON Data is empty!"}), 400
-
+def delete_message(message_id):
     with Session() as session:
-        auth_message(data.get('id'), session)
+        if current_user.role != Role.teacher:
+            auth_message(message_id, session)
 
         message = session.query(Message) \
-            .filter(Message.id == data.get('id')).first()
+            .filter(Message.id == message_id).first()
         session.delete(message)
+        session.commit()
 
     return jsonify({"msg": "Message has been successfully deleted!"}), 200
