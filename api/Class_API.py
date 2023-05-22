@@ -51,7 +51,7 @@ def get_all_classes():
 
 @class_api.route("/api/v1/class", methods=['POST'])
 @jwt_required()
-def create():
+def create_class():
     with Session(expire_on_commit=False) as session:
         if current_user.role != Role.teacher:
             raise InsufficientRights("You should be teacher to do this")
@@ -68,6 +68,25 @@ def create():
         session.commit()
 
     return jsonify({"msg": "Class was created", "id": classes.id}), 200
+
+@class_api.route("/api/v1/class/img", methods=['POST'])
+@jwt_required()
+def upload_image():
+    data = request.json
+    if current_user.role != Role.teacher:
+            raise InsufficientRights("You should be a teacher to do this")
+    if data is None or data.get('image') is None or data.get('id') is None:
+        raise InvalidRequest('To upload an image you have to pass JSON object with base64 encrypted "image" and "id" field.')
+    with Session(expire_on_commit=False) as session:
+        class_id = data.get('id')
+        image: str = data.get('image')
+        thumbnail = Thumbnail(class_id=class_id, image=base64.b64decode(image.encode()))
+
+        session.add(thumbnail)
+        session.commit()
+
+    return jsonify(msg='Thumbnail has been uploaded successfully'), 200
+        
 
 
 @class_api.route("/api/v1/class", methods=['PUT'])
@@ -158,7 +177,7 @@ def get_all_students_in_class(class_id):
         return jsonify(current_stud), 200
 
 @class_api.route("/api/v1/class/img/<class_id>", methods=['GET'])
-def get_pic(class_id):
+def get_image(class_id):
     class_id = int(class_id)
     with Session.begin() as session:
         if session.query(Class).filter(Class.id == class_id).first() is None:

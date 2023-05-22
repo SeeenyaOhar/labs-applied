@@ -26,6 +26,7 @@ class Class(Base):
     class_users = relationship("ClassUser", cascade="all, delete")
     requests = relationship("Request", cascade="all, delete")
     messages = relationship("Message", cascade="all, delete")
+    thumbnail = relationship("Thumbnail", cascade="all, delete")
     teacher = relationship("Teacher")
 
     def to_dict(self) -> dict:
