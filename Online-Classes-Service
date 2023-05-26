@@ -1,0 +1,22 @@
+\l
+CREATE DATABASE transactions;
+CREATE DATABASE transactions;
+CREATE DATABASE "transactions";
+exit()
+exit
+\q
+\password postgres
+ALTER DATABASE postgres RENAME TO "Online-Classes-Service";
+\c template0
+\c template0;
+CREATE DATABASE "Online-Classes-Service";
+;
+CREATE DATABASE "Online-Classes-Service";
+CREATE DATABASE "Online-Classes-Service";
+CREATE DATABASE "Online-Classes"
+;
+CREATE DATABASE "Online-Classes-Service";
+CREATE DATABASE "Online-Classes-Service";
+\d
+\l
+\s Online-Classes-Service;
