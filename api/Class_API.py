@@ -9,7 +9,8 @@ from models.models import Class, ClassUser, Request, User, Role
 from models.models import Thumbnail
 from services.db import Session
 from services.jwt import teacher_required
-
+from services.image import thumbnail_exists
+from services.image import update_thumbnail
 import base64
 class_api = Blueprint('class_api', __name__)
 
@@ -69,25 +70,6 @@ def create_class():
 
     return jsonify({"msg": "Class was created", "id": classes.id}), 200
 
-@class_api.route("/api/v1/class/img", methods=['POST'])
-@jwt_required()
-def upload_image():
-    data = request.json
-    if current_user.role != Role.teacher:
-            raise InsufficientRights("You should be a teacher to do this")
-    if data is None or data.get('image') is None or data.get('id') is None:
-        raise InvalidRequest('To upload an image you have to pass JSON object with base64 encrypted "image" and "id" field.')
-    with Session(expire_on_commit=False) as session:
-        class_id = data.get('id')
-        image: str = data.get('image')
-        thumbnail = Thumbnail(class_id=class_id, image=base64.b64decode(image.encode()))
-
-        session.add(thumbnail)
-        session.commit()
-
-    return jsonify(msg='Thumbnail has been uploaded successfully'), 200
-        
-
 
 @class_api.route("/api/v1/class", methods=['PUT'])
 @jwt_required()
@@ -99,7 +81,8 @@ def update_class():
             return jsonify({"msg": "Bad request"}), 400
 
         classes = Class(**class_data)
-        session.query(Class).filter(Class.id == classes.id).update(class_data, synchronize_session="fetch")
+        session.query(Class).filter(Class.id == classes.id) \
+            .update(class_data, synchronize_session="fetch")
     return jsonify({"msg": "Class was updated"}), 200
 
 
@@ -187,4 +170,30 @@ def get_image(class_id):
         return jsonify(thumbnail=base64.b64encode(thumbnail.image).decode("utf-8") if thumbnail is not None else None), 200
 
 
+@class_api.route("/api/v1/class/img", methods=['PUT'])
+@jwt_required()
+def upload_image():
+    data = request.json
+    if current_user.role != Role.teacher:
+            raise InsufficientRights("You should be a teacher to do this")
+    if data is None or data.get('image') is None or data.get('id') is None:
+        raise InvalidRequest('To upload an image you have to pass JSON object with base64 encrypted "image" and "id" field.')
+    with Session(expire_on_commit=False) as session:
+        # check if the class provided exists
+        # if not throw 400
+        class_id = data.get('id')
+        request_image = data.get('image')
+        encode_image = lambda image: base64.b64decode(image.encode())
+
+        images = thumbnail_exists(session, class_id)
+        image = images.first()
+        if image:
+            update_thumbnail(images, encode_image(request_image))
+            return jsonify(msg='Found an existant thumbnail and replaced it successfully.'), 200
+        thumbnail = Thumbnail(class_id=class_id, image=encode_image(request_image))
+
+        session.add(thumbnail)
+        session.commit()
+
+    return jsonify(msg='Thumbnail has been uploaded successfully'), 200
 
