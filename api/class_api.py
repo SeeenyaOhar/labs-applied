@@ -1,28 +1,43 @@
-from flask import request, Blueprint, jsonify
-from flask_jwt_extended import jwt_required, current_user
+from flask import request
+from flask import Blueprint
+from flask import jsonify
+
+from flask_jwt_extended import jwt_required
+from flask_jwt_extended import current_user
 
 from errors.auth_errors import InsufficientRights
 from errors.general_errors import InvalidRequest
 from errors.general_errors import ResourceNotFound
 
-from models.models import Class, ClassUser, Request, User, Role
+from models.models import Class
+from models.models import ClassUser
+from models.models import Request
+from models.models import User
+from models.models import Role
 from models.models import Thumbnail
+
 from services.db import Session
 from services.jwt import teacher_required
 from services.image import thumbnail_exists
 from services.image import update_thumbnail
+import services.classes as class_service
+from services.classes import get_classes
+from services.classes import delete_cls
+from services.classes import save_class
+
+from services.jwt import teacher_required
+
 import base64
 class_api = Blueprint('class_api', __name__)
-
 
 @class_api.route("/api/v1/class/<class_id>", methods=['GET'])
 def get_class(class_id):
     with Session(expire_on_commit=False) as session:
-        classes = session.query(Class).get(class_id)
-        if classes is None:
+        cls = class_service.get_cls(session, { 'id': class_id })
+        if cls is None:
             return jsonify({"msg": "Class doesn't exist"}), 404
 
-        return jsonify(classes.to_dict()), 200
+        return jsonify(cls.to_dict()), 200
 
 
 @class_api.route("/api/v1/class/<class_id>", methods=['DELETE'])
@@ -30,12 +45,11 @@ def get_class(class_id):
 @teacher_required()
 def delete_class(class_id):
     with Session.begin() as session:
-        classes = session.query(Class)
-        currentClass = classes.get(int(class_id))
-        if currentClass is None:
+        classes = class_service.get_cls(session, {'class_id': class_id})
+        if classes is None:
             return jsonify({"msg": "Class doesn't exist"}), 404
 
-        session.delete(currentClass)
+        delete_cls(session, classes)
 
     return jsonify({"msg": "Class was deleted"}), 200
 
@@ -43,32 +57,36 @@ def delete_class(class_id):
 @class_api.route("/api/v1/class", methods=['GET'])
 def get_all_classes():
     with Session.begin() as session:
-        classes = session.query(Class).all()
-        classes = [element.to_dict() for element in classes]
+        classes = get_classes(session)
+
         if classes is None:
             return jsonify({"msg": "Class doesn't exist"}), 404
+        classes = [element.to_dict() for element in classes]
         return jsonify(classes), 200
 
 
 @class_api.route("/api/v1/class", methods=['POST'])
 @jwt_required()
+@teacher_required()
 def create_class():
     with Session(expire_on_commit=False) as session:
-        if current_user.role != Role.teacher:
-            raise InsufficientRights("You should be teacher to do this")
         class_data = request.get_json()
         if class_data is None:
             return jsonify({"msg": "Class data is empty, no json provided"}), 400
 
-        classes = Class(**class_data)
-        class_exist = session.query(Class).filter_by(title=classes.title, description=classes.description).first()
+        cls = Class(**class_data)
+        class_exist = class_service.get_cls(session,
+                              {'title': class_data['title'], 
+                                'description': class_data['description']}
+                                        )
         if class_exist is not None:
             return jsonify({"msg": "Such class already exists"}), 400
 
-        session.add(classes)
+        save_class(session, cls)
+
         session.commit()
 
-    return jsonify({"msg": "Class was created", "id": classes.id}), 200
+    return jsonify({"msg": "Class was created", "id": cls.id}), 200
 
 
 @class_api.route("/api/v1/class", methods=['PUT'])

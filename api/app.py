@@ -4,11 +4,11 @@ from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from sqlalchemy.exc import IntegrityError
 
-from api.Class_API import class_api
-from api.Messages_API import messages_api
-from api.Student_API import student_api
-from api.Teacher_API import teacher_api
-from api.User_API import user_api
+from api.class_api import class_api
+from api.messages_api import messages_api
+from api.student_api import student_api
+from api.teacher_api import teacher_api
+from api.user_api import user_api
 from configuration.config import configure
 from errors.auth_errors import InvalidCredentials
 from errors.auth_errors import InsufficientRights
