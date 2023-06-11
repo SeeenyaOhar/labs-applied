@@ -12,6 +12,7 @@ from services.jwt import teacher_required
 from services.image import thumbnail_exists
 from services.image import update_thumbnail
 import base64
+
 class_api = Blueprint('class_api', __name__)
 
 
@@ -71,7 +72,7 @@ def create_class():
     return jsonify({"msg": "Class was created", "id": classes.id}), 200
 
 
-@class_api.route("/api/v1/class", methods=['PUT'])
+@class_api.route("/api/v1/class", methods=['PATCH'])
 @jwt_required()
 @teacher_required()
 def update_class():
