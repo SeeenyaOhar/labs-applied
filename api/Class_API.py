@@ -198,3 +198,35 @@ def upload_image():
 
     return jsonify(msg='Thumbnail has been uploaded successfully'), 200
 
+
+@class_api.route("/api/v1/classes/<user_id>", methods=['GET'])
+@jwt_required()
+def get_classes(user_id):
+    with Session(expire_on_commit=False) as session:
+        def get_joined_classes():
+            class_users = session.query(ClassUser)\
+            .filter(ClassUser.user_id == int(user_id))\
+                .all()
+            class_users_dicts = [elem.to_dict() for elem in class_users]
+
+            classes = [session.query(Class)\
+                            .filter_by(id=class_user['class_id'])\
+                                .first().to_dict() for class_user in class_users_dicts]
+            
+            return classes
+
+        def get_teacher_classes():
+            classes = session.query(Class)\
+                .filter(Class.teacher_id == int(user_id))\
+                .all()
+            return [cls.to_dict() for cls in classes]
+
+        if int(user_id) != current_user.id and current_user.role != Role.teacher:
+            raise InsufficientRights("Role should be teacher or you should be the owner of the resource")
+        joined_classes = get_joined_classes()
+        teacher_classes = get_teacher_classes()
+        all_user_classes = joined_classes + teacher_classes
+
+        if all_user_classes is None:
+            return jsonify({"msg": "Classes don't exist"}), 404
+        return jsonify(all_user_classes), 200
