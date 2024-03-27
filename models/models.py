@@ -36,7 +36,8 @@ class Class(Base):
             'description': self.description,
             'teacher_id': self.teacher_id,
             'teacher_first_name': self.teacher.user.firstName,
-            'teacher_last_name': self.teacher.user.lastName
+            'teacher_last_name': self.teacher.user.lastName,
+            'students_number': len(self.class_users)
         }
 
 
@@ -65,7 +66,6 @@ class User(Base):
             'firstName': self.firstName,
             'lastName': self.lastName,
             'username': self.username,
-            'password': self.password,
             'phone': self.phone,
             'email': self.email,
             'role': str(self.role)

@@ -134,10 +134,10 @@ def delete_student_from_class():
 @teacher_required()
 def get_all_requests(class_id):
     with Session.begin() as session:
+        cls = session.query(Class).filter(Class.id == class_id).first()
+        if cls is None:
+            return jsonify(msg="Such class doesn't exist", class_id=class_id), 404
         current_request = session.query(Request).filter(Request.class_id == class_id).all()
-        if current_request is None:
-            return jsonify({"msg": "class doesn't exist"}), 404
-
         requests = [elem.to_dict() for elem in current_request]
 
         return jsonify(requests), 200

@@ -94,7 +94,7 @@ def login_user():
     return jsonify({"msg": "Invalid request body, specify password and username}, please!"}), 400
 
 
-@user_api.route("/api/v1/user", methods=['PUT'])
+@user_api.route("/api/v1/user", methods=['PATCH'])
 @jwt_required()
 def update_user():
     with Session() as session:
