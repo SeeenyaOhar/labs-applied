@@ -1,0 +1,40 @@
+version: '2'
+services:
+     postgresql:
+          image: postgres
+          ports:
+               - "5433:5432"
+          shm_size: 128mb
+          environment:
+               POSTGRES_USER: postgres
+               POSTGRES_PASSWORD: admin
+          
+          command: postgres -i
+
+          healthcheck:
+               test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
+               interval: 30s
+               timeout: 60s
+               retries: 5
+               start_period: 80s  
+     
+     init-postgresql:
+          build: 
+               context: ./db/init
+          environment:
+               PSQL_USERNAME: postgres # TODO: This is not critical but should not be here
+               PGPASSWORD: admin # TODO: This 100% should not be here, it's a secret and should be passed through a vault 
+               PSQL_HOST: postgresql
+               PSQL_PORT: 5432
+               
+          depends_on:
+               - postgresql
+
+     backend:
+          build: 
+               context: .
+          ports:
+               - 4999:5000
+          depends_on:
+               - init-postgresql
+               - postgresql

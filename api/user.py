@@ -1,3 +1,4 @@
+
 import bcrypt
 from flask import request, Blueprint, jsonify
 from flask_jwt_extended import jwt_required, current_user, create_access_token, get_jwt_identity
@@ -117,3 +118,4 @@ def update_user():
             return jsonify({"msg": "User was updated"}), 200
 
     return jsonify({"msg": "Update failed"}), 400
+

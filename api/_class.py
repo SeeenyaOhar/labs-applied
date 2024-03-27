@@ -180,8 +180,6 @@ def upload_image():
     if data is None or data.get('image') is None or data.get('id') is None:
         raise InvalidRequest('To upload an image you have to pass JSON object with base64 encrypted "image" and "id" field.')
     with Session(expire_on_commit=False) as session:
-        # check if the class provided exists
-        # if not throw 400
         class_id = data.get('id')
         request_image = data.get('image')
         encode_image = lambda image: base64.b64decode(image.encode())
