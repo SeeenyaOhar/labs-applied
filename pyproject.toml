@@ -4,10 +4,9 @@ version = "0.1.0"
 description = ""
 authors = ["Arsenii Ohar <arsen.ogar@gmail.com>"]
 readme = "README.md"
-packages = [{include = "labs_applied"}]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 Flask = "^2.2.2"
 waitress = "^2.1.2"
 SQLAlchemy = "^1.4.42"
@@ -21,6 +20,7 @@ flask-testing = "^0.8.1"
 urllib3 = "^1.26.12"
 coverage = "^6.5.0"
 flask-cors = "^3.0.10"
+python-dotenv = "^1.0.1"
 
 
 [build-system]

@@ -1,14 +1,17 @@
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import psycopg2.errors
 from flask import Flask, jsonify
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from sqlalchemy.exc import IntegrityError
-
-from api.Class_API import class_api
-from api.Messages_API import messages_api
-from api.Student_API import student_api
-from api.Teacher_API import teacher_api
-from api.User_API import user_api
+from api._class import class_api
+from api.messages import messages_api
+from api.student import student_api
+from api.teacher import teacher_api
+from api.user import user_api
 from configuration.config import configure
 from errors.auth_errors import InvalidCredentials
 from errors.auth_errors import InsufficientRights
@@ -20,19 +23,13 @@ app = Flask(__name__)
 CORS(app)
 
 app.register_blueprint(user_api)
-
 app.register_blueprint(teacher_api)
-
 app.register_blueprint(class_api)
-
 app.register_blueprint(student_api)
-
 app.register_blueprint(messages_api)
 
 configure(app)
-
 jwt = JWTManager(app)
-
 
 @app.route("/api/v1/hello-world-19")
 def hello_world():
@@ -77,6 +74,6 @@ def user_lookup_callback(_jwt_header, jwt_data):
         session.expunge_all()
 
         if user is None:
-            raise InvalidCredentials("sub is invalid")
+            raise InvalidCredentials("Sub is invalid")
 
         return user

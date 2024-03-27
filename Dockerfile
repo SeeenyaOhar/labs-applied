@@ -1,22 +1,18 @@
-FROM python:3.7
-ENV YOUR_ENV=${YOUR_ENV} \
-  PYTHONFAULTHANDLER=1 \
-  PYTHONUNBUFFERED=1 \
-  PYTHONHASHSEED=random \
-  PIP_NO_CACHE_DIR=off \
-  PIP_DISABLE_PIP_VERSION_CHECK=on \
-  PIP_DEFAULT_TIMEOUT=100 \
-  # Poetry's configuration:
-  POETRY_NO_INTERACTION=1 \
-  POETRY_VIRTUALENVS_CREATE=false \
-  POETRY_CACHE_DIR='/var/cache/pypoetry' \
-  POETRY_HOME='/usr/local'\
-  POETRY_VERSION=1.7.1\
-  PATH=${PATH}:${POETRY_HOME}
-
-COPY . /code
+FROM python:3.8.10 AS builder
+RUN apt-get update && \
+    apt-get install --no-install-suggests --no-install-recommends --yes pipx python3-venv
+ENV PATH="/root/.local/bin:${PATH}"
+RUN pipx install poetry
+RUN pipx inject poetry poetry-plugin-bundle
 WORKDIR /code
-# RUN apt-get update && apt-get install build-essential
-RUN curl -sSL https://install.python-poetry.org | python3 - && poetry install
+COPY pyproject.toml poetry.lock README.md ./
+RUN poetry env use 3.8.10
+RUN poetry bundle venv --only=main --python=/usr/local/bin/python3 /venv
 
-CMD flask -a api.app run
+FROM python:3.8.10-slim AS app
+ENV PATH="$PATH:/code/venv/bin"
+RUN apt-get update && apt-get install libpq5 -y
+COPY . /code
+COPY --from=builder /venv /code/venv
+WORKDIR /code
+CMD ["/bin/bash", "./docker-entrypoint.sh"]
