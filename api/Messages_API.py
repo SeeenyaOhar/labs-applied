@@ -137,6 +137,8 @@ def update_message():
 @jwt_required()
 def delete_message(message_id):
     with Session() as session:
+        message = session.query(Message) \
+            .filter(Message.id == message_id).first()
         if current_user.role != Role.teacher:
             auth_message(message_id, session)
 
