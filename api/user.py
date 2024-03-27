@@ -1,3 +1,4 @@
+
 import bcrypt
 from flask import request, Blueprint, jsonify
 from flask_jwt_extended import jwt_required, current_user, create_access_token, get_jwt_identity
@@ -94,7 +95,7 @@ def login_user():
     return jsonify({"msg": "Invalid request body, specify password and username}, please!"}), 400
 
 
-@user_api.route("/api/v1/user", methods=['PUT'])
+@user_api.route("/api/v1/user", methods=['PATCH'])
 @jwt_required()
 def update_user():
     with Session() as session:
@@ -117,3 +118,4 @@ def update_user():
             return jsonify({"msg": "User was updated"}), 200
 
     return jsonify({"msg": "Update failed"}), 400
+

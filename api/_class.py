@@ -72,7 +72,7 @@ def create_class():
     return jsonify({"msg": "Class was created", "id": classes.id}), 200
 
 
-@class_api.route("/api/v1/class", methods=['PUT'])
+@class_api.route("/api/v1/class", methods=['PATCH'])
 @jwt_required()
 @teacher_required()
 def update_class():
@@ -134,10 +134,10 @@ def delete_student_from_class():
 @teacher_required()
 def get_all_requests(class_id):
     with Session.begin() as session:
+        cls = session.query(Class).filter(Class.id == class_id).first()
+        if cls is None:
+            return jsonify(msg="Such class doesn't exist", class_id=class_id), 404
         current_request = session.query(Request).filter(Request.class_id == class_id).all()
-        if current_request is None:
-            return jsonify({"msg": "class doesn't exist"}), 404
-
         requests = [elem.to_dict() for elem in current_request]
 
         return jsonify(requests), 200
@@ -180,8 +180,6 @@ def upload_image():
     if data is None or data.get('image') is None or data.get('id') is None:
         raise InvalidRequest('To upload an image you have to pass JSON object with base64 encrypted "image" and "id" field.')
     with Session(expire_on_commit=False) as session:
-        # check if the class provided exists
-        # if not throw 400
         class_id = data.get('id')
         request_image = data.get('image')
         encode_image = lambda image: base64.b64decode(image.encode())
@@ -198,3 +196,35 @@ def upload_image():
 
     return jsonify(msg='Thumbnail has been uploaded successfully'), 200
 
+
+@class_api.route("/api/v1/classes/<user_id>", methods=['GET'])
+@jwt_required()
+def get_classes(user_id):
+    with Session(expire_on_commit=False) as session:
+        def get_joined_classes():
+            class_users = session.query(ClassUser)\
+            .filter(ClassUser.user_id == int(user_id))\
+                .all()
+            class_users_dicts = [elem.to_dict() for elem in class_users]
+
+            classes = [session.query(Class)\
+                            .filter_by(id=class_user['class_id'])\
+                                .first().to_dict() for class_user in class_users_dicts]
+            
+            return classes
+
+        def get_teacher_classes():
+            classes = session.query(Class)\
+                .filter(Class.teacher_id == int(user_id))\
+                .all()
+            return [cls.to_dict() for cls in classes]
+
+        if int(user_id) != current_user.id and current_user.role != Role.teacher:
+            raise InsufficientRights("Role should be teacher or you should be the owner of the resource")
+        joined_classes = get_joined_classes()
+        teacher_classes = get_teacher_classes()
+        all_user_classes = joined_classes + teacher_classes
+
+        if all_user_classes is None:
+            return jsonify({"msg": "Classes don't exist"}), 404
+        return jsonify(all_user_classes), 200

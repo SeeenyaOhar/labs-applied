@@ -20,6 +20,7 @@ from models.models import User
 from services.db import Session
 
 app = Flask(__name__)
+app.debug = True
 CORS(app)
 
 app.register_blueprint(user_api)

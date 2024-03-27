@@ -1,3 +1,4 @@
+
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required
 from flask_jwt_extended import current_user
@@ -29,20 +30,7 @@ def send_request(class_id):
         return jsonify({"msg": "The request has been sent"}), 200
 
 
-@student_api.route("/api/v1/classes/<user_id>", methods=['GET'])
-@jwt_required()
-def get_classes(user_id):
-    with Session(expire_on_commit=False) as session:
-        if int(user_id) != current_user.id and current_user.role != Role.teacher:
-            raise InsufficientRights("Role should be teacher or you should be the owner of the resource")
-        current = session.query(ClassUser).filter(ClassUser.user_id == user_id).all()
-        dictclass = [elem.to_dict() for elem in current]
 
-        current_class = [session.query(Class).filter_by(id=i['class_id']).first().to_dict() for i in dictclass]
-
-        if current_class is None:
-            return jsonify({"msg": "class doesn't exist"}), 404
-        return jsonify(current_class), 200
     
 @student_api.route("/api/v1/student/requests", methods=['GET'])
 @jwt_required()
@@ -53,4 +41,3 @@ def get_student_requests():
         requests = [i.to_dict() for i in requests]
         
         return jsonify(requests), 200
-

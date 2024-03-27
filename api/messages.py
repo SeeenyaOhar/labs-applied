@@ -1,19 +1,14 @@
 from datetime import datetime
-from flask import Blueprint 
-from flask import jsonify
-from flask import request
-from flask_jwt_extended import jwt_required
-from flask_jwt_extended import current_user
-from sqlalchemy import exists
-from errors.auth_errors import InsufficientRights
-from errors.general_errors import ResourceNotFound
-from errors.general_errors import InvalidRequest
-from models.models import Message
-from models.models import Class
-from models.models import ClassUser
-from models.models import Role
-from services.db import Session
 
+from flask import Blueprint, jsonify, request
+from flask_jwt_extended import jwt_required, current_user
+from sqlalchemy import exists
+
+from errors.auth_errors import InsufficientRights
+from errors.general_errors import ResourceNotFound, InvalidRequest
+from models.models import Message, Class, ClassUser
+from services.db import Session
+from models.models import Role
 messages_api = Blueprint('messages_api', __name__)
 
 
@@ -142,6 +137,8 @@ def update_message():
 @jwt_required()
 def delete_message(message_id):
     with Session() as session:
+        message = session.query(Message) \
+            .filter(Message.id == message_id).first()
         if current_user.role != Role.teacher:
             auth_message(message_id, session)
 
